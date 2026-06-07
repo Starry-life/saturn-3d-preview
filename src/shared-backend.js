@@ -49,6 +49,29 @@ function publicUrl(bucket, path) {
   return data.publicUrl;
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result)));
+    reader.addEventListener("error", () => reject(reader.error));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function createCompressedImageSrc(file) {
+  if (!file.type.startsWith("image/")) return readFileAsDataUrl(file);
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 1600;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
 function normalizePhoto(photo) {
   return {
     id: Number(photo.id),
@@ -79,6 +102,15 @@ async function uploadPublicFile(bucket, folder, file) {
   });
   if (error) throw error;
   return publicUrl(bucket, path);
+}
+
+async function uploadPhotoSrc(file) {
+  try {
+    return await uploadPublicFile(PHOTO_BUCKET, "photos", file);
+  } catch (error) {
+    console.warn("Storage upload failed; storing compressed image in database instead.", error);
+    return createCompressedImageSrc(file);
+  }
 }
 
 async function insertLog(type, account, photoId = null, fileName = "") {
@@ -136,7 +168,7 @@ export async function uploadPhotos(account, files) {
   if (!isAuthorizedAccount(account)) throw new Error("账号无权限上传");
   const added = [];
   for (const file of files) {
-    const src = await uploadPublicFile(PHOTO_BUCKET, "photos", file);
+    const src = await uploadPhotoSrc(file);
     const { data, error } = await supabase
       .from("photos")
       .insert({
@@ -158,7 +190,7 @@ export async function replaceSharedPhoto(photoId, account, file) {
   assertConfigured();
   if (!isAuthorizedAccount(account)) throw new Error("账号无权限更换照片");
   const id = Number(photoId);
-  const src = await uploadPublicFile(PHOTO_BUCKET, "photos", file);
+  const src = await uploadPhotoSrc(file);
   const { error } = await supabase.from("photos").upsert(
     {
       id,

@@ -1817,10 +1817,10 @@ routePanel.addEventListener("change", async (event) => {
       nextStatus.textContent = `已上传 ${added.length} 张：${added.map((photo) => `#${photo.id}`).join("、")}`;
     }
     return;
-  } catch {
+  } catch (error) {
     if (isSharedBackendConfigured) {
       const nextStatus = routePanel.querySelector("[data-upload-status]");
-      if (nextStatus) nextStatus.textContent = "云端保存失败，请稍后重试；这次不会当作正式上传";
+      if (nextStatus) nextStatus.textContent = `云端保存失败：${error.message || "请稍后重试"}`;
       return;
     }
     const added = [];
