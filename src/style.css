@@ -252,10 +252,23 @@ input:focus {
   max-height: min(68vh, 720px);
   object-fit: contain;
   border-radius: 6px;
+  cursor: zoom-in;
   background:
     radial-gradient(circle at 50% 42%, rgba(86, 118, 154, 0.2), transparent 54%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.015)),
     #050914;
+}
+
+.photo-page.is-zoomed {
+  place-items: start center;
+}
+
+.photo-preview.is-zoomed {
+  width: auto;
+  max-width: none;
+  max-height: none;
+  min-width: min(100%, 760px);
+  cursor: zoom-out;
 }
 
 .photo-meta {

@@ -1457,6 +1457,7 @@ let ambientContext = null;
 let ambientGain = null;
 let ambientOscillators = [];
 let synthMusicPlaying = false;
+let musicWanted = false;
 
 function startAmbientSynth() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -1506,11 +1507,18 @@ function stopAmbientSynth() {
 
 async function toggleMusicPlayback() {
   if (!musicAudio.paused || synthMusicPlaying) {
+    musicWanted = false;
     musicAudio.pause();
     stopAmbientSynth();
     musicStar.classList.remove("playing");
     return;
   }
+  musicWanted = true;
+  await ensureMusicPlayback();
+}
+
+async function ensureMusicPlayback() {
+  if (!musicWanted || !musicAudio.paused || synthMusicPlaying) return;
   try {
     await musicAudio.play();
     stopAmbientSynth();
@@ -1660,26 +1668,37 @@ function renderRoute() {
   if (!hash) {
     routePanel.hidden = true;
     routePanel.innerHTML = "";
+    ensureMusicPlayback().catch(() => {});
     return;
   }
   if (hash === "album") {
     renderAlbumPage();
+    ensureMusicPlayback().catch(() => {});
     return;
   }
   if (hash === "music") {
     renderMusicPage();
+    ensureMusicPlayback().catch(() => {});
     return;
   }
   const match = hash.match(/^photo\/(\d+)$/);
   if (match) {
     const photo = photosById.get(Number(match[1]));
     if (photo) renderPhotoPage(photo);
+    ensureMusicPlayback().catch(() => {});
     return;
   }
   routePanel.hidden = true;
+  ensureMusicPlayback().catch(() => {});
 }
 
 routePanel.addEventListener("click", (event) => {
+  const previewImage = event.target.closest(".photo-preview");
+  if (previewImage) {
+    previewImage.classList.toggle("is-zoomed");
+    previewImage.closest(".photo-page")?.classList.toggle("is-zoomed", previewImage.classList.contains("is-zoomed"));
+    return;
+  }
   const routeButton = event.target.closest("[data-route]");
   if (routeButton?.dataset.route === "home") {
     navigateHome();
@@ -1910,7 +1929,13 @@ musicStar.addEventListener("dblclick", () => {
 });
 
 musicAudio.addEventListener("play", () => musicStar.classList.add("playing"));
-musicAudio.addEventListener("pause", () => musicStar.classList.remove("playing"));
+musicAudio.addEventListener("pause", () => {
+  if (musicWanted) {
+    setTimeout(() => ensureMusicPlayback().catch(() => {}), 120);
+    return;
+  }
+  musicStar.classList.remove("playing");
+});
 window.addEventListener("hashchange", renderRoute);
 renderRoute();
 loadSharedState();
