@@ -33,6 +33,7 @@ let musicName = "星河默认氛围";
 let storedMusicSrc = "";
 let currentMusicObjectUrl = "";
 const STORAGE_KEY = "graduation-star-atlas-state-v1";
+const assetUrl = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 function readStoredState() {
   try {
@@ -786,7 +787,7 @@ function mulberry32(seed) {
 }
 
 function createReferenceDomeTexture() {
-  const texture = new THREE.TextureLoader().load("/reference-dome-texture.jpg");
+  const texture = new THREE.TextureLoader().load(assetUrl("reference-dome-texture.jpg"));
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 16;
   texture.center.set(0.5, 0.5);
@@ -796,14 +797,14 @@ function createReferenceDomeTexture() {
 }
 
 function createReferenceDomeDiscTexture() {
-  const texture = new THREE.TextureLoader().load("/reference-dome-disc.png");
+  const texture = new THREE.TextureLoader().load(assetUrl("reference-dome-disc.png"));
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 16;
   return texture;
 }
 
 function createReferenceGalaxyBackgroundTexture() {
-  const backgroundTexture = new THREE.TextureLoader().load("/galaxy-dome-16x9-clean.jpg");
+  const backgroundTexture = new THREE.TextureLoader().load(assetUrl("galaxy-dome-16x9-clean.jpg"));
   backgroundTexture.colorSpace = THREE.SRGBColorSpace;
   backgroundTexture.anisotropy = 16;
   return backgroundTexture;
