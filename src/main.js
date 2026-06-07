@@ -201,7 +201,7 @@ function mergeServerState(state) {
   });
   nextPhotoId = Number(state.nextPhotoId) || Math.max(...photos.map((photo) => photo.id), 100) + 1;
   if (state.musicName) musicName = state.musicName;
-  if (state.musicSrc) {
+  if (state.musicSrc && state.musicSrc !== storedMusicSrc) {
     storedMusicSrc = state.musicSrc;
     musicAudio.src = storedMusicSrc;
   }
@@ -1617,13 +1617,27 @@ function renderPhotoPage(photo) {
   `;
 }
 
+function renderPhotoViewer(photo) {
+  routePanel.hidden = false;
+  routePanel.innerHTML = `
+    <article class="photo-viewer-page">
+      <button class="panel-close" data-route="photo/${photo.id}" aria-label="返回照片">脳</button>
+      <div class="viewer-toolbar">
+        <span>照片 #${photo.id}</span>
+        <a class="download-button" href="${photo.src}" download="graduation-photo-${photo.id}.jpg">下载照片</a>
+      </div>
+      <img class="photo-original" src="${photo.src}" alt="照片 ${photo.id}" />
+    </article>
+  `;
+}
+
 function renderAlbumPage() {
-  const ranked = getRankedPhotos().slice(0, 10);
+  const ranked = [...photos].sort((a, b) => a.id - b.id);
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="album-page">
       <button class="panel-close" data-route="home" aria-label="返回星图">×</button>
-      <div class="panel-kicker">TOP 10</div>
+      <div class="panel-kicker">GALLERY</div>
       <h2>相册主页</h2>
       <form class="album-search" data-search-form>
         <input name="photoId" type="number" min="1" step="1" placeholder="输入照片编号" aria-label="输入照片编号" />
@@ -1668,35 +1682,36 @@ function renderRoute() {
   if (!hash) {
     routePanel.hidden = true;
     routePanel.innerHTML = "";
-    ensureMusicPlayback().catch(() => {});
     return;
   }
   if (hash === "album") {
     renderAlbumPage();
-    ensureMusicPlayback().catch(() => {});
     return;
   }
   if (hash === "music") {
     renderMusicPage();
-    ensureMusicPlayback().catch(() => {});
+    return;
+  }
+  const viewMatch = hash.match(/^photo\/(\d+)\/view$/);
+  if (viewMatch) {
+    const photo = photosById.get(Number(viewMatch[1]));
+    if (photo) renderPhotoViewer(photo);
     return;
   }
   const match = hash.match(/^photo\/(\d+)$/);
   if (match) {
     const photo = photosById.get(Number(match[1]));
     if (photo) renderPhotoPage(photo);
-    ensureMusicPlayback().catch(() => {});
     return;
   }
   routePanel.hidden = true;
-  ensureMusicPlayback().catch(() => {});
 }
 
 routePanel.addEventListener("click", (event) => {
   const previewImage = event.target.closest(".photo-preview");
   if (previewImage) {
-    previewImage.classList.toggle("is-zoomed");
-    previewImage.closest(".photo-page")?.classList.toggle("is-zoomed", previewImage.classList.contains("is-zoomed"));
+    const match = window.location.hash.match(/^#photo\/(\d+)$/);
+    if (match) window.location.hash = `photo/${match[1]}/view`;
     return;
   }
   const routeButton = event.target.closest("[data-route]");
@@ -1706,6 +1721,11 @@ routePanel.addEventListener("click", (event) => {
   }
   if (routeButton?.dataset.route === "album") {
     navigateAlbum();
+    return;
+  }
+  if (routeButton?.dataset.route?.startsWith("photo/")) {
+    window.location.hash = routeButton.dataset.route;
+    renderRoute();
     return;
   }
   const musicButton = event.target.closest("[data-music-action]");
