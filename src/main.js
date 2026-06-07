@@ -1401,30 +1401,6 @@ function replacePhoto(photoId, src, name = "", account = "") {
   return photo;
 }
 
-function downloadBackup() {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    photos: getRankedPhotos().map((photo) => ({
-      id: photo.id,
-      src: photo.src,
-      clickCount: photo.clickCount,
-      name: photo.name || "",
-      uploaderAccount: photo.uploaderAccount || "",
-      replacedBy: photo.replacedBy || "",
-    })),
-    musicName,
-    musicSrc: storedMusicSrc,
-    activityLogs,
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `graduation-star-atlas-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1662,7 +1638,6 @@ function renderAlbumPage() {
         <button type="submit">查看记录</button>
       </form>
       <div class="records-output" data-records-output></div>
-      <button class="panel-action" data-download-backup type="button">下载数据备份</button>
       <div class="album-grid">
         ${ranked
           .map(
@@ -1705,12 +1680,6 @@ function renderRoute() {
 }
 
 routePanel.addEventListener("click", (event) => {
-  const backupButton = event.target.closest("[data-download-backup]");
-  if (backupButton) {
-    const code = window.prompt("请输入备份查看码");
-    if (code === RECORDS_ACCESS_CODE) downloadBackup();
-    return;
-  }
   const routeButton = event.target.closest("[data-route]");
   if (routeButton?.dataset.route === "home") {
     navigateHome();
