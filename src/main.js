@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { handleSharedRequest, isSharedBackendConfigured } from "./shared-backend.js";
 import "./style.css";
 
@@ -29,7 +29,7 @@ scene.add(root);
 const routePanel = document.querySelector("#route-panel");
 const musicStar = document.querySelector("#music-star");
 const musicAudio = document.querySelector("#bg-music");
-let musicName = "星河默认氛围";
+let musicName = "鏄熸渤榛樿姘涘洿";
 let storedMusicSrc = "";
 let currentMusicObjectUrl = "";
 const STORAGE_KEY = "graduation-star-atlas-state-v1";
@@ -143,7 +143,7 @@ function saveState() {
       }),
     );
   } catch (error) {
-    console.warn("本地保存失败，可能是文件过大或浏览器空间不足。", error);
+    console.warn("鏈湴淇濆瓨澶辫触锛屽彲鑳芥槸鏂囦欢杩囧ぇ鎴栨祻瑙堝櫒绌洪棿涓嶈冻銆?, error);
   }
 }
 
@@ -218,7 +218,7 @@ async function requestJson(url, options = {}) {
   if (sharedResponse) return sharedResponse;
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "服务器请求失败");
+  if (!response.ok) throw new Error(data.error || "鏈嶅姟鍣ㄨ姹傚け璐?);
   return data;
 }
 
@@ -254,9 +254,9 @@ function logActivity(type, account, photoId, fileName = "") {
 function photoTierLabel(photo) {
   const ranked = getRankedPhotos();
   const rank = ranked.findIndex((item) => item.id === photo.id) + 1;
-  if (rank <= 10) return "金色星辰";
-  if (rank <= 30) return "银蓝星辰";
-  return "星尘微粒";
+  if (rank <= 10) return "閲戣壊鏄熻景";
+  if (rank <= 30) return "閾惰摑鏄熻景";
+  return "鏄熷皹寰矑";
 }
 
 function createPlanetTexture() {
@@ -1537,21 +1537,21 @@ function renderMusicPage() {
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="music-page">
-      <button class="panel-close" data-route="home" aria-label="返回星图">×</button>
+      <button class="panel-close" data-route="home" aria-label="杩斿洖鏄熷浘">脳</button>
       <div class="panel-kicker">MUSIC STAR</div>
-      <h2>背景音乐</h2>
+      <h2>鑳屾櫙闊充箰</h2>
       <div class="music-controls">
-        <button data-music-action="toggle">${musicPlaying ? "暂停音乐" : "播放音乐"}</button>
-        <button data-route="home">返回星图</button>
+        <button data-music-action="toggle">${musicPlaying ? "鏆傚仠闊充箰" : "鎾斁闊充箰"}</button>
+        <button data-route="home">杩斿洖鏄熷浘</button>
       </div>
       <div class="music-upload">
         <div>
-          <strong>上传音乐</strong>
-          <span>当前音乐：${musicName}</span>
+          <strong>涓婁紶闊充箰</strong>
+          <span>褰撳墠闊充箰锛?{musicName}</span>
         </div>
-        <input class="account-field" data-music-account type="text" inputmode="numeric" placeholder="输入上传账号" aria-label="输入上传账号" />
+        <input class="account-field" data-music-account type="text" inputmode="numeric" placeholder="杈撳叆涓婁紶璐﹀彿" aria-label="杈撳叆涓婁紶璐﹀彿" />
         <label class="upload-button">
-          选择音乐
+          閫夋嫨闊充箰
           <input data-music-upload type="file" accept="audio/*" />
         </label>
         <output class="music-status" data-music-status></output>
@@ -1562,7 +1562,7 @@ function renderMusicPage() {
 
 function renderRecords() {
   if (!activityLogs.length) {
-    return `<div class="records-empty">暂无上传或更换记录。</div>`;
+    return `<div class="records-empty">鏆傛棤涓婁紶鎴栨洿鎹㈣褰曘€?/div>`;
   }
   return `
     <div class="records-list">
@@ -1572,12 +1572,12 @@ function renderRecords() {
             <div class="record-item">
               <strong>${
                 record.type === "music"
-                  ? "上传音乐"
-                  : `${record.type === "upload" ? "上传" : "更换"}照片 #${record.photoId}`
+                  ? "涓婁紶闊充箰"
+                  : `${record.type === "upload" ? "涓婁紶" : "鏇存崲"}鐓х墖 #${record.photoId}`
               }</strong>
-              <span>账号 ${record.account}</span>
+              <span>璐﹀彿 ${record.account}</span>
               <span>${record.time}</span>
-              <span>${record.fileName || "未命名文件"}</span>
+              <span>${record.fileName || "鏈懡鍚嶆枃浠?}</span>
             </div>
           `,
         )
@@ -1591,28 +1591,27 @@ function renderPhotoPage(photo) {
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="photo-page">
-      <button class="panel-close" data-route="album" aria-label="返回相册">×</button>
+      <button class="panel-close" data-route="album" aria-label="杩斿洖鐩稿唽">脳</button>
       <div class="panel-kicker">${tier}</div>
-      <h2>照片 #${photo.id}</h2>
-      <img class="photo-preview" src="${photo.src}" alt="毕业照片 ${photo.id}" />
+      <h2>鐓х墖 #${photo.id}</h2>
+      <img class="photo-preview" src="${photo.src}" alt="姣曚笟鐓х墖 ${photo.id}" />
       <div class="photo-meta">
-        <span>永久编号 ${photo.id}</span>
-        <span>点击量 ${photo.clickCount}</span>
+        <span>姘镐箙缂栧彿 ${photo.id}</span>
+        <span>鐐瑰嚮閲?${photo.clickCount}</span>
       </div>
       <div class="replace-photo">
         <div>
-          <strong>更换照片</strong>
-          <span>更换后保留编号 #${photo.id}，浏览量从 0 重新记录。</span>
+          <strong>鏇存崲鐓х墖</strong>
+          <span>鏇存崲鍚庝繚鐣欑紪鍙?#${photo.id}锛屾祻瑙堥噺浠?0 閲嶆柊璁板綍銆?/span>
         </div>
-        <input class="account-field" data-replace-account type="text" inputmode="numeric" placeholder="输入上传账号" aria-label="输入上传账号" />
+        <input class="account-field" data-replace-account type="text" inputmode="numeric" placeholder="杈撳叆涓婁紶璐﹀彿" aria-label="杈撳叆涓婁紶璐﹀彿" />
         <label class="upload-button">
-          选择新照片
-          <input data-replace-input data-photo-id="${photo.id}" type="file" accept="image/*" />
+          閫夋嫨鏂扮収鐗?          <input data-replace-input data-photo-id="${photo.id}" type="file" accept="image/*" />
         </label>
-        <button data-replace-confirm data-photo-id="${photo.id}" type="button">确认替换</button>
+        <button data-replace-confirm data-photo-id="${photo.id}" type="button">纭鏇挎崲</button>
         <output class="replace-status" data-replace-status></output>
       </div>
-      <button class="panel-action" data-route="album">返回相册</button>
+      <button class="panel-action" data-route="album">杩斿洖鐩稿唽</button>
     </article>
   `;
 }
@@ -1621,47 +1620,74 @@ function renderPhotoViewer(photo) {
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="photo-viewer-page">
-      <button class="panel-close" data-route="photo/${photo.id}" aria-label="返回照片">脳</button>
+      <button class="panel-close" data-route="photo/${photo.id}" aria-label="杩斿洖鐓х墖">鑴?/button>
       <div class="viewer-toolbar">
-        <span>照片 #${photo.id}</span>
-        <a class="download-button" href="${photo.src}" download="graduation-photo-${photo.id}.jpg">下载照片</a>
+        <span>鐓х墖 #${photo.id}</span>
+        <a class="download-button" href="${photo.src}" download="graduation-photo-${photo.id}.jpg">涓嬭浇鐓х墖</a>
       </div>
-      <img class="photo-original" src="${photo.src}" alt="照片 ${photo.id}" />
+      <img class="photo-original" src="${photo.src}" alt="鐓х墖 ${photo.id}" />
     </article>
   `;
 }
 
 function renderAlbumPage() {
-  const ranked = [...photos].sort((a, b) => a.id - b.id);
+  const ranked = getRankedPhotos().slice(0, 10);
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="album-page">
-      <button class="panel-close" data-route="home" aria-label="返回星图">×</button>
-      <div class="panel-kicker">GALLERY</div>
-      <h2>相册主页</h2>
+      <button class="panel-close" data-route="home" aria-label="杩斿洖鏄熷浘">脳</button>
+      <div class="panel-kicker">TOP 10</div>
+      <h2>鐩稿唽涓婚〉</h2>
       <form class="album-search" data-search-form>
-        <input name="photoId" type="number" min="1" step="1" placeholder="输入照片编号" aria-label="输入照片编号" />
-        <button type="submit">查看照片</button>
+        <input name="photoId" type="number" min="1" step="1" placeholder="杈撳叆鐓х墖缂栧彿" aria-label="杈撳叆鐓х墖缂栧彿" />
+        <button type="submit">鏌ョ湅鐓х墖</button>
       </form>
       <div class="album-upload">
         <div>
-          <strong>上传照片</strong>
-          <span>新照片将获得永久编号 #${nextPhotoId}</span>
+          <strong>涓婁紶鐓х墖</strong>
+          <span>鏂扮収鐗囧皢鑾峰緱姘镐箙缂栧彿 #${nextPhotoId}</span>
         </div>
-        <input class="account-field" data-upload-account type="text" inputmode="numeric" placeholder="输入上传账号" aria-label="输入上传账号" />
+        <input class="account-field" data-upload-account type="text" inputmode="numeric" placeholder="杈撳叆涓婁紶璐﹀彿" aria-label="杈撳叆涓婁紶璐﹀彿" />
         <label class="upload-button">
-          选择照片
+          閫夋嫨鐓х墖
           <input data-upload-input type="file" accept="image/*" multiple />
         </label>
         <output class="upload-status" data-upload-status></output>
       </div>
       <form class="records-access" data-records-form>
-        <input name="accessCode" type="password" placeholder="输入留痕查看码" aria-label="输入留痕查看码" />
-        <button type="submit">查看记录</button>
+        <input name="accessCode" type="password" placeholder="杈撳叆鐣欑棔鏌ョ湅鐮? aria-label="杈撳叆鐣欑棔鏌ョ湅鐮? />
+        <button type="submit">鏌ョ湅璁板綍</button>
       </form>
       <div class="records-output" data-records-output></div>
+      <button class="panel-action" data-route="gallery">进入图库</button>
       <div class="album-grid">
         ${ranked
+          .map(
+            (photo) => `
+              <button class="album-card" data-photo-id="${photo.id}">
+                <img src="${photo.src}" alt="鐓х墖 ${photo.id}" />
+                <span>#${photo.id} 路 ${photo.clickCount}</span>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+      <button class="panel-action" data-route="home">杩斿洖鏄熷浘</button>
+    </article>
+  `;
+}
+
+
+function renderGalleryPage() {
+  const galleryPhotos = [...photos].sort((a, b) => a.id - b.id);
+  routePanel.hidden = false;
+  routePanel.innerHTML = `
+    <article class="album-page">
+      <button class="panel-close" data-route="album" aria-label="返回相册">脳</button>
+      <div class="panel-kicker">GALLERY</div>
+      <h2>图库</h2>
+      <div class="album-grid">
+        ${galleryPhotos
           .map(
             (photo) => `
               <button class="album-card" data-photo-id="${photo.id}">
@@ -1672,11 +1698,10 @@ function renderAlbumPage() {
           )
           .join("")}
       </div>
-      <button class="panel-action" data-route="home">返回星图</button>
+      <button class="panel-action" data-route="album">返回相册</button>
     </article>
   `;
 }
-
 function renderRoute() {
   const hash = window.location.hash.replace(/^#/, "");
   if (!hash) {
@@ -1686,6 +1711,10 @@ function renderRoute() {
   }
   if (hash === "album") {
     renderAlbumPage();
+    return;
+  }
+  if (hash === "gallery") {
+    renderGalleryPage();
     return;
   }
   if (hash === "music") {
@@ -1743,15 +1772,15 @@ routePanel.addEventListener("click", (event) => {
     const accountInput = routePanel.querySelector("[data-replace-account]");
     const account = accountInput?.value ?? "";
     if (!isAuthorizedAccount(account)) {
-      if (status) status.textContent = "账号无权限更换照片";
+      if (status) status.textContent = "璐﹀彿鏃犳潈闄愭洿鎹㈢収鐗?;
       accountInput?.focus();
       return;
     }
     if (!pending) {
-      if (status) status.textContent = "请先选择新照片";
+      if (status) status.textContent = "璇峰厛閫夋嫨鏂扮収鐗?;
       return;
     }
-    if (status) status.textContent = "更换中...";
+    if (status) status.textContent = "鏇存崲涓?..";
     const formData = new FormData();
     formData.append("account", account);
     formData.append("photo", pending.file);
@@ -1764,12 +1793,12 @@ routePanel.addEventListener("click", (event) => {
         mergeServerState(state);
         renderPhotoPage(photosById.get(photoId));
         const nextStatus = routePanel.querySelector("[data-replace-status]");
-        if (nextStatus) nextStatus.textContent = `已更换照片 #${photoId}，浏览量已清零`;
+        if (nextStatus) nextStatus.textContent = `宸叉洿鎹㈢収鐗?#${photoId}锛屾祻瑙堥噺宸叉竻闆禶;
       })
       .catch(() => {
         if (isSharedBackendConfigured) {
           const nextStatus = routePanel.querySelector("[data-replace-status]");
-          if (nextStatus) nextStatus.textContent = "云端更换失败，请稍后重试；这次不会当作正式更换";
+          if (nextStatus) nextStatus.textContent = "浜戠鏇存崲澶辫触锛岃绋嶅悗閲嶈瘯锛涜繖娆′笉浼氬綋浣滄寮忔洿鎹?;
           return;
         }
         const photo = replacePhoto(photoId, pending.src, pending.name, account);
@@ -1777,7 +1806,7 @@ routePanel.addEventListener("click", (event) => {
         if (!photo) return;
         renderPhotoPage(photo);
         const nextStatus = routePanel.querySelector("[data-replace-status]");
-        if (nextStatus) nextStatus.textContent = `已更换照片 #${photo.id}，浏览量已清零（本地保存）`;
+        if (nextStatus) nextStatus.textContent = `宸叉洿鎹㈢収鐗?#${photo.id}锛屾祻瑙堥噺宸叉竻闆讹紙鏈湴淇濆瓨锛塦;
       });
     return;
   }
@@ -1797,7 +1826,7 @@ routePanel.addEventListener("submit", (event) => {
       navigatePhoto(photoId, true);
       return;
     }
-    input.setCustomValidity("没有找到这个编号的照片");
+    input.setCustomValidity("娌℃湁鎵惧埌杩欎釜缂栧彿鐨勭収鐗?);
     input.reportValidity();
     input.setCustomValidity("");
     return;
@@ -1818,7 +1847,7 @@ routePanel.addEventListener("submit", (event) => {
         });
       return;
     }
-    input.setCustomValidity("查看码不正确");
+    input.setCustomValidity("鏌ョ湅鐮佷笉姝ｇ‘");
     input.reportValidity();
     input.setCustomValidity("");
   }
@@ -1831,17 +1860,17 @@ routePanel.addEventListener("change", async (event) => {
   const accountInput = routePanel.querySelector("[data-upload-account]");
   const account = accountInput?.value ?? "";
   if (!isAuthorizedAccount(account)) {
-    if (status) status.textContent = "账号无权限上传";
+    if (status) status.textContent = "璐﹀彿鏃犳潈闄愪笂浼?;
     accountInput?.focus();
     input.value = "";
     return;
   }
   const files = [...input.files].filter((file) => file.type.startsWith("image/"));
   if (!files.length) {
-    if (status) status.textContent = "请选择图片文件";
+    if (status) status.textContent = "璇烽€夋嫨鍥剧墖鏂囦欢";
     return;
   }
-  if (status) status.textContent = "上传中...";
+  if (status) status.textContent = "涓婁紶涓?..";
   const formData = new FormData();
   formData.append("account", account);
   files.forEach((file) => formData.append("photos", file));
@@ -1853,13 +1882,13 @@ routePanel.addEventListener("change", async (event) => {
     mergeServerState(state);
     const nextStatus = routePanel.querySelector("[data-upload-status]");
     if (nextStatus) {
-      nextStatus.textContent = `已上传 ${added.length} 张：${added.map((photo) => `#${photo.id}`).join("、")}`;
+      nextStatus.textContent = `宸蹭笂浼?${added.length} 寮狅細${added.map((photo) => `#${photo.id}`).join("銆?)}`;
     }
     return;
   } catch (error) {
     if (isSharedBackendConfigured) {
       const nextStatus = routePanel.querySelector("[data-upload-status]");
-      if (nextStatus) nextStatus.textContent = `云端保存失败：${error.message || "请稍后重试"}`;
+      if (nextStatus) nextStatus.textContent = `浜戠淇濆瓨澶辫触锛?{error.message || "璇风◢鍚庨噸璇?}`;
       return;
     }
     const added = [];
@@ -1870,7 +1899,7 @@ routePanel.addEventListener("change", async (event) => {
     renderAlbumPage();
     const nextStatus = routePanel.querySelector("[data-upload-status]");
     if (nextStatus) {
-      nextStatus.textContent = `已上传 ${added.length} 张：${added.map((photo) => `#${photo.id}`).join("、")}（本地保存）`;
+      nextStatus.textContent = `宸蹭笂浼?${added.length} 寮狅細${added.map((photo) => `#${photo.id}`).join("銆?)}锛堟湰鍦颁繚瀛橈級`;
     }
   }
 });
@@ -1882,15 +1911,15 @@ routePanel.addEventListener("change", async (event) => {
   const status = routePanel.querySelector("[data-replace-status]");
   const photoId = Number(input.dataset.photoId);
   if (!file.type.startsWith("image/")) {
-    if (status) status.textContent = "请选择图片文件";
+    if (status) status.textContent = "璇烽€夋嫨鍥剧墖鏂囦欢";
     input.value = "";
     pendingPhotoReplacements.delete(photoId);
     return;
   }
-  if (status) status.textContent = "读取新照片中...";
+  if (status) status.textContent = "璇诲彇鏂扮収鐗囦腑...";
   const src = await readImageFile(file);
   pendingPhotoReplacements.set(photoId, { src, name: file.name, file });
-  if (status) status.textContent = `已选择：${file.name}，请点击确认替换`;
+  if (status) status.textContent = `宸查€夋嫨锛?{file.name}锛岃鐐瑰嚮纭鏇挎崲`;
 });
 
 routePanel.addEventListener("change", (event) => {
@@ -1901,12 +1930,12 @@ routePanel.addEventListener("change", (event) => {
   const accountInput = routePanel.querySelector("[data-music-account]");
   const account = accountInput?.value ?? "";
   if (!isAuthorizedAccount(account)) {
-    if (status) status.textContent = "账号无权限上传音乐";
+    if (status) status.textContent = "璐﹀彿鏃犳潈闄愪笂浼犻煶涔?;
     accountInput?.focus();
     input.value = "";
     return;
   }
-  if (status) status.textContent = "上传音乐中...";
+  if (status) status.textContent = "涓婁紶闊充箰涓?..";
   stopAmbientSynth();
   const formData = new FormData();
   formData.append("account", account);
@@ -1917,7 +1946,7 @@ routePanel.addEventListener("change", (event) => {
   })
     .then(({ state }) => {
       mergeServerState(state);
-      if (status) status.textContent = `已上传：${file.name}`;
+      if (status) status.textContent = `宸蹭笂浼狅細${file.name}`;
       toggleMusicPlayback().finally(() => {
         if (window.location.hash.replace(/^#/, "") === "music") renderMusicPage();
       });
@@ -1932,7 +1961,7 @@ routePanel.addEventListener("change", (event) => {
         musicAudio.load();
         logActivity("music", account, "", file.name);
         saveState();
-        if (status) status.textContent = `已上传：${file.name}（本地保存）`;
+        if (status) status.textContent = `宸蹭笂浼狅細${file.name}锛堟湰鍦颁繚瀛橈級`;
         toggleMusicPlayback().finally(() => {
           if (window.location.hash.replace(/^#/, "") === "music") renderMusicPage();
         });
@@ -2149,3 +2178,4 @@ function animate() {
   requestAnimationFrame(animate);
 }
 animate();
+
