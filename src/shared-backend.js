@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = String(import.meta.env.VITE_SUPABASE_URL || "")
+  .replace(/\/rest\/v1\/?$/i, "")
+  .replace(/\/+$/, "");
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const PHOTO_BUCKET = import.meta.env.VITE_SUPABASE_PHOTO_BUCKET || "graduation-photos";
 const MUSIC_BUCKET = import.meta.env.VITE_SUPABASE_MUSIC_BUCKET || "graduation-music";
