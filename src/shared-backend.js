@@ -212,27 +212,30 @@ export async function replaceSharedPhoto(photoId, account, file) {
 export async function incrementSharedPhotoView(photoId) {
   assertConfigured();
   const id = Number(photoId);
-  const { data: current, error: selectError } = await supabase
-    .from("photos")
-    .select("id,src,click_count,name,uploader_account,replaced_by")
-    .eq("id", id)
-    .maybeSingle();
-  if (selectError) throw selectError;
+  const { error } = await supabase.rpc("increment_photo_view", { photo_id: id });
+  if (error) {
+    const { data: current, error: selectError } = await supabase
+      .from("photos")
+      .select("id,src,click_count,name,uploader_account,replaced_by")
+      .eq("id", id)
+      .maybeSingle();
+    if (selectError) throw selectError;
 
-  const nextCount = Number(current?.click_count ?? defaultClickCount(id)) + 1;
-  const { error } = await supabase.from("photos").upsert(
-    {
-      id,
-      src: current?.src || "",
-      click_count: nextCount,
-      name: current?.name || "",
-      uploader_account: current?.uploader_account || "",
-      replaced_by: current?.replaced_by || "",
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  );
-  if (error) throw error;
+    const nextCount = Number(current?.click_count ?? defaultClickCount(id)) + 1;
+    const { error: updateError } = await supabase.from("photos").upsert(
+      {
+        id,
+        src: current?.src || "",
+        click_count: nextCount,
+        name: current?.name || "",
+        uploader_account: current?.uploader_account || "",
+        replaced_by: current?.replaced_by || "",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (updateError) throw updateError;
+  }
   return { state: await getSharedState() };
 }
 
