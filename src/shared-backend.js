@@ -88,7 +88,7 @@ async function insertLog(type, account, photoId = null, fileName = "") {
     photo_id: photoId || null,
     file_name: fileName,
   });
-  if (error) throw error;
+  if (error) console.warn("Failed to write activity log", error);
 }
 
 async function getSettings() {
@@ -180,7 +180,7 @@ export async function incrementSharedPhotoView(photoId) {
   const id = Number(photoId);
   const { data: current, error: selectError } = await supabase
     .from("photos")
-    .select("id,src,click_count")
+    .select("id,src,click_count,name,uploader_account,replaced_by")
     .eq("id", id)
     .maybeSingle();
   if (selectError) throw selectError;
@@ -191,6 +191,9 @@ export async function incrementSharedPhotoView(photoId) {
       id,
       src: current?.src || "",
       click_count: nextCount,
+      name: current?.name || "",
+      uploader_account: current?.uploader_account || "",
+      replaced_by: current?.replaced_by || "",
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" },

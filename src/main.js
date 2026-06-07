@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { handleSharedRequest } from "./shared-backend.js";
+import { handleSharedRequest, isSharedBackendConfigured } from "./shared-backend.js";
 import "./style.css";
 
 const canvas = document.querySelector("#saturn-scene");
@@ -1359,12 +1359,13 @@ function navigatePhoto(photoId, increment = false) {
   const photo = photosById.get(photoId);
   if (!photo) return;
   if (increment) {
-    photo.clickCount += 1;
-    assignPhotoEntriesByRank();
-    saveState();
     requestJson(`/api/photos/${photoId}/view`, { method: "POST" })
       .then(({ state }) => mergeServerState(state))
-      .catch(() => {});
+      .catch(() => {
+        photo.clickCount += 1;
+        assignPhotoEntriesByRank();
+        saveState();
+      });
   }
   window.location.hash = `photo/${photoId}`;
   renderRoute();
@@ -1727,6 +1728,11 @@ routePanel.addEventListener("click", (event) => {
         if (nextStatus) nextStatus.textContent = `已更换照片 #${photoId}，浏览量已清零`;
       })
       .catch(() => {
+        if (isSharedBackendConfigured) {
+          const nextStatus = routePanel.querySelector("[data-replace-status]");
+          if (nextStatus) nextStatus.textContent = "云端更换失败，请稍后重试；这次不会当作正式更换";
+          return;
+        }
         const photo = replacePhoto(photoId, pending.src, pending.name, account);
         pendingPhotoReplacements.delete(photoId);
         if (!photo) return;
@@ -1812,6 +1818,11 @@ routePanel.addEventListener("change", async (event) => {
     }
     return;
   } catch {
+    if (isSharedBackendConfigured) {
+      const nextStatus = routePanel.querySelector("[data-upload-status]");
+      if (nextStatus) nextStatus.textContent = "云端保存失败，请稍后重试；这次不会当作正式上传";
+      return;
+    }
     const added = [];
     for (const file of files) {
       const src = await readImageFile(file);
