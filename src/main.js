@@ -1753,7 +1753,7 @@ routePanel.addEventListener("click", (event) => {
     navigateAlbum();
     return;
   }
-  if (routeButton?.dataset.route?.startsWith("photo/")) {
+  if (routeButton?.dataset.route) {
     window.location.hash = routeButton.dataset.route;
     renderRoute();
     return;
