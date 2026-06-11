@@ -119,6 +119,10 @@ const photoTiers = getTieredPhotos();
 const photosById = new Map(photos.map((photo) => [photo.id, photo]));
 let nextPhotoId = Math.max(...photos.map((photo) => photo.id), 100) + 1;
 let lastPhotoSourceRoute = "album";
+const routeScrollPositions = {
+  album: 0,
+  gallery: 0,
+};
 const activityLogs = Array.isArray(storedState.activityLogs) ? storedState.activityLogs : [];
 const RECORDS_ACCESS_CODE = "5708481";
 const pendingPhotoReplacements = new Map();
@@ -1688,8 +1692,43 @@ function renderPhotoViewer(photo) {
   `;
 }
 
+function getScrollableRoutePage() {
+  return routePanel.querySelector(".album-page, .photo-page, .music-page, .photo-viewer-page");
+}
+
+function rememberRouteScroll(route) {
+  if (route !== "album" && route !== "gallery") return;
+  routeScrollPositions[route] = getScrollableRoutePage()?.scrollTop ?? 0;
+}
+
+function restoreRouteScroll(route) {
+  if (route !== "album" && route !== "gallery") return;
+  const scrollTop = routeScrollPositions[route] ?? 0;
+  const restore = () => {
+    const page = getScrollableRoutePage();
+    if (page) page.scrollTop = scrollTop;
+  };
+  requestAnimationFrame(restore);
+  setTimeout(restore, 80);
+}
+
+function renderAlbumCards(albumPhotos) {
+  return albumPhotos
+    .map(
+      (photo) => `
+        <button class="album-card" data-photo-id="${photo.id}">
+          <img src="${photo.src}" alt="照片 ${photo.id}" />
+          <span>#${photo.id} · ${photo.clickCount}</span>
+        </button>
+      `,
+    )
+    .join("");
+}
+
 function renderAlbumPage() {
-  const ranked = getRankedPhotos().slice(0, 10);
+  const ranked = getRankedPhotos();
+  const goldRanked = ranked.slice(0, 10);
+  const silverRanked = ranked.slice(10, 30);
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="album-page">
@@ -1718,21 +1757,24 @@ function renderAlbumPage() {
       </form>
       <div class="records-output" data-records-output></div>
       <button class="panel-action" data-route="gallery">进入图库</button>
-      <div class="album-grid">
-        ${ranked
-          .map(
-            (photo) => `
-              <button class="album-card" data-photo-id="${photo.id}">
-                <img src="${photo.src}" alt="照片 ${photo.id}" />
-                <span>#${photo.id} · ${photo.clickCount}</span>
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
+      <section class="rank-section rank-section--gold" aria-label="金色星辰前十">
+        <div class="rank-section-header">
+          <h3>金色星辰 TOP 10</h3>
+          <span>浏览量最高的十张照片</span>
+        </div>
+        <div class="album-grid">${renderAlbumCards(goldRanked)}</div>
+      </section>
+      <section class="rank-section rank-section--silver" aria-label="银蓝星辰第十一至三十名">
+        <div class="rank-section-header">
+          <h3>银蓝星辰 11-30</h3>
+          <span>继续发光的二十张照片</span>
+        </div>
+        <div class="album-grid">${renderAlbumCards(silverRanked)}</div>
+      </section>
       <button class="panel-action" data-route="home">返回星图</button>
     </article>
   `;
+  restoreRouteScroll("album");
 }
 
 
@@ -1744,21 +1786,11 @@ function renderGalleryPage() {
       <button class="panel-close" data-route="album" aria-label="返回相册">×</button>
       <div class="panel-kicker">GALLERY</div>
       <h2>图库</h2>
-      <div class="album-grid">
-        ${galleryPhotos
-          .map(
-            (photo) => `
-              <button class="album-card" data-photo-id="${photo.id}">
-                <img src="${photo.src}" alt="照片 ${photo.id}" />
-                <span>#${photo.id} · ${photo.clickCount}</span>
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
+      <div class="album-grid">${renderAlbumCards(galleryPhotos)}</div>
       <button class="panel-action" data-route="album">返回相册</button>
     </article>
   `;
+  restoreRouteScroll("gallery");
 }
 function renderRoute() {
   const hash = window.location.hash.replace(/^#/, "");
@@ -1871,6 +1903,7 @@ routePanel.addEventListener("click", (event) => {
   const photoButton = event.target.closest(".album-card[data-photo-id]");
   if (photoButton) {
     const sourceRoute = window.location.hash.replace(/^#/, "") === "gallery" ? "gallery" : "album";
+    rememberRouteScroll(sourceRoute);
     navigatePhoto(Number(photoButton.dataset.photoId), true, sourceRoute);
   }
 });

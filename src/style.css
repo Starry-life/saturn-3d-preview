@@ -488,6 +488,81 @@ input:focus {
   margin-top: 18px;
 }
 
+.rank-section {
+  position: relative;
+  margin-top: 22px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(210, 233, 255, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.018)),
+    rgba(7, 13, 24, 0.58);
+}
+
+.rank-section::before,
+.rank-section::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  transform: rotate(-8deg);
+}
+
+.rank-section::before {
+  top: 10px;
+  right: -12%;
+  width: 58%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.86), transparent);
+  box-shadow: 0 0 18px rgba(153, 213, 255, 0.55);
+}
+
+.rank-section::after {
+  bottom: 16px;
+  left: -10%;
+  width: 46%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 205, 98, 0.78), transparent);
+  box-shadow: 0 0 16px rgba(255, 192, 76, 0.48);
+}
+
+.rank-section--gold {
+  border-color: rgba(255, 204, 86, 0.28);
+  box-shadow: inset 0 0 26px rgba(255, 187, 67, 0.08);
+}
+
+.rank-section--silver {
+  border-color: rgba(163, 219, 255, 0.28);
+  box-shadow: inset 0 0 28px rgba(132, 202, 255, 0.08);
+}
+
+.rank-section-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(244, 249, 255, 0.84);
+}
+
+.rank-section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.rank-section-header span {
+  font-size: 12px;
+  color: rgba(218, 231, 255, 0.62);
+}
+
+.rank-section .album-grid {
+  position: relative;
+  z-index: 1;
+}
+
 .album-card {
   height: auto;
   padding: 0;
