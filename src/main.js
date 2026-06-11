@@ -1046,28 +1046,38 @@ const particlePositions = new Float32Array(particleCount * 3);
 const particleColors = new Float32Array(particleCount * 3);
 const particleMeta = [];
 const rng = mulberry32(826606);
+const photoDustPalette = [
+  [1.0, 0.78, 0.28], // gold
+  [0.9, 0.96, 1.0], // silver
+  [0.38, 0.74, 1.0], // blue
+  [0.76, 0.48, 1.0], // purple
+  [1.0, 0.34, 0.32], // red
+  [1.0, 0.56, 0.2], // orange
+  [0.34, 1.0, 0.58], // green
+  [1.0, 1.0, 1.0], // white
+  [1.0, 0.92, 0.28], // yellow
+];
 
-function setParticleColor(index, hasPhoto, seedTone) {
+function stableDustColor(photo, seedTone) {
+  const id = Number(photo?.id ?? 0);
+  const paletteIndex = Math.abs((id * 9301 + 49297) % photoDustPalette.length);
+  const base = photoDustPalette[paletteIndex];
+  const lift = 0.84 + seedTone * 0.22;
+  return base.map((channel) => Math.min(1, channel * lift));
+}
+
+function setParticleColor(index, photo, seedTone) {
   const colorIndex = index * 3;
-  if (!hasPhoto) {
+  if (!photo) {
     particleColors[colorIndex] = 0.18 + seedTone * 0.08;
     particleColors[colorIndex + 1] = 0.26 + seedTone * 0.12;
     particleColors[colorIndex + 2] = 0.42 + seedTone * 0.2;
     return;
   }
-  if (seedTone > 0.58) {
-    particleColors[colorIndex] = 1;
-    particleColors[colorIndex + 1] = 0.78 + seedTone * 0.18;
-    particleColors[colorIndex + 2] = 0.32 + seedTone * 0.22;
-  } else if (seedTone > 0.24) {
-    particleColors[colorIndex] = 0.9 + seedTone * 0.1;
-    particleColors[colorIndex + 1] = 0.96 + seedTone * 0.04;
-    particleColors[colorIndex + 2] = 1;
-  } else {
-    particleColors[colorIndex] = 0.46 + seedTone * 0.22;
-    particleColors[colorIndex + 1] = 0.72 + seedTone * 0.2;
-    particleColors[colorIndex + 2] = 1;
-  }
+  const [red, green, blue] = stableDustColor(photo, seedTone);
+  particleColors[colorIndex] = red;
+  particleColors[colorIndex + 1] = green;
+  particleColors[colorIndex + 2] = blue;
 }
 
 for (let i = 0; i < particleCount; i += 1) {
@@ -1086,7 +1096,7 @@ for (let i = 0; i < particleCount; i += 1) {
     laneOffset: (rng() - 0.5) * 0.035,
     tone,
   });
-  setParticleColor(i, Boolean(photo), tone);
+  setParticleColor(i, photo, tone);
 }
 
 const particleGeometry = new THREE.BufferGeometry();
@@ -1350,7 +1360,7 @@ function assignPhotoEntriesByRank() {
   particleMeta.forEach((meta, index) => {
     const photo = tieredPhotos.dust[index];
     meta.photoId = photo?.id ?? null;
-    setParticleColor(index, Boolean(photo), meta.tone);
+    setParticleColor(index, photo, meta.tone);
   });
   particleGeometry.attributes.color.needsUpdate = true;
 }
