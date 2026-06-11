@@ -1044,6 +1044,8 @@ const dustPhotos = photoTiers.dust;
 const particleCount = 10000;
 const particlePositions = new Float32Array(particleCount * 3);
 const particleColors = new Float32Array(particleCount * 3);
+const photoDustPositions = new Float32Array(particleCount * 3);
+const photoDustColors = new Float32Array(particleCount * 3);
 const particleMeta = [];
 const rng = mulberry32(826606);
 const photoDustPalette = [
@@ -1080,6 +1082,20 @@ function setParticleColor(index, photo, seedTone) {
   particleColors[colorIndex + 2] = blue;
 }
 
+function setPhotoDustColor(index, photo, seedTone) {
+  const colorIndex = index * 3;
+  const [red, green, blue] = photo ? stableDustColor(photo, seedTone) : [0, 0, 0];
+  photoDustColors[colorIndex] = red;
+  photoDustColors[colorIndex + 1] = green;
+  photoDustColors[colorIndex + 2] = blue;
+}
+
+function hidePhotoDust(index) {
+  photoDustPositions[index * 3 + 0] = 9999;
+  photoDustPositions[index * 3 + 1] = 9999;
+  photoDustPositions[index * 3 + 2] = 9999;
+}
+
 for (let i = 0; i < particleCount; i += 1) {
   const photo = dustPhotos[i];
   const lane = 2.68 + Math.pow(rng(), 0.72) * 3.12;
@@ -1097,6 +1113,8 @@ for (let i = 0; i < particleCount; i += 1) {
     tone,
   });
   setParticleColor(i, photo, tone);
+  setPhotoDustColor(i, photo, tone);
+  hidePhotoDust(i);
 }
 
 const particleGeometry = new THREE.BufferGeometry();
@@ -1115,6 +1133,25 @@ const ringParticles = new THREE.Points(particleGeometry, particleMaterial);
 ringParticles.userData.kind = "dust";
 ringParticles.renderOrder = 6;
 ringGroup.add(ringParticles);
+
+const photoDustGeometry = new THREE.BufferGeometry();
+photoDustGeometry.setAttribute("position", new THREE.BufferAttribute(photoDustPositions, 3));
+photoDustGeometry.setAttribute("color", new THREE.BufferAttribute(photoDustColors, 3));
+const photoDustMaterial = new THREE.PointsMaterial({
+  map: createSparkTexture(),
+  size: 0.074,
+  sizeAttenuation: true,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.96,
+  depthWrite: false,
+  depthTest: true,
+  blending: THREE.AdditiveBlending,
+});
+const photoDustPoints = new THREE.Points(photoDustGeometry, photoDustMaterial);
+photoDustPoints.userData.kind = "photo-dust";
+photoDustPoints.renderOrder = 6.5;
+ringGroup.add(photoDustPoints);
 
 const silverPhotos = photoTiers.silver;
 const brightStarCount = silverPhotos.length;
@@ -1361,8 +1398,12 @@ function assignPhotoEntriesByRank() {
     const photo = tieredPhotos.dust[index];
     meta.photoId = photo?.id ?? null;
     setParticleColor(index, photo, meta.tone);
+    setPhotoDustColor(index, photo, meta.tone);
+    if (!photo) hidePhotoDust(index);
   });
   particleGeometry.attributes.color.needsUpdate = true;
+  photoDustGeometry.attributes.color.needsUpdate = true;
+  photoDustGeometry.attributes.position.needsUpdate = true;
 }
 
 function navigatePhoto(photoId, increment = false) {
@@ -2067,6 +2108,15 @@ canvas.addEventListener("click", (event) => {
     }
   }
 
+  const photoDustHit = raycaster.intersectObject(photoDustPoints, false)[0];
+  if (photoDustHit && photoDustHit.index !== undefined) {
+    const meta = particleMeta[photoDustHit.index];
+    if (meta?.photoId && meta.frontVisibility > 0.12) {
+      navigatePhoto(meta.photoId, true);
+      return;
+    }
+  }
+
   const dustHit = raycaster.intersectObject(ringParticles, false)[0];
   if (dustHit && dustHit.index !== undefined) {
     const meta = particleMeta[dustHit.index];
@@ -2121,11 +2171,22 @@ function updateRingParticles(elapsed) {
     const angle = meta.angle + elapsed * meta.speed * speed;
     const radius = meta.radius + meta.laneOffset * Math.sin(meta.phase + elapsed * 0.4);
     meta.frontVisibility = THREE.MathUtils.smoothstep(Math.sin(angle), -0.16, 0.26);
-    particlePositions[i * 3 + 0] = Math.cos(angle) * radius;
-    particlePositions[i * 3 + 1] = Math.sin(angle) * radius;
-    particlePositions[i * 3 + 2] = Math.sin(meta.phase + elapsed * 1.4) * meta.bob;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    const z = Math.sin(meta.phase + elapsed * 1.4) * meta.bob;
+    particlePositions[i * 3 + 0] = x;
+    particlePositions[i * 3 + 1] = y;
+    particlePositions[i * 3 + 2] = z;
+    if (meta.photoId && meta.frontVisibility > 0.12) {
+      photoDustPositions[i * 3 + 0] = x;
+      photoDustPositions[i * 3 + 1] = y;
+      photoDustPositions[i * 3 + 2] = z + 0.012;
+    } else {
+      hidePhotoDust(i);
+    }
   }
   particleGeometry.attributes.position.needsUpdate = true;
+  photoDustGeometry.attributes.position.needsUpdate = true;
 
   for (let i = 0; i < brightStarCount; i += 1) {
     const meta = brightStarMeta[i];
