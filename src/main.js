@@ -1172,7 +1172,7 @@ for (let i = 0; i < foregroundSparkCount; i += 1) {
     transparent: true,
     opacity: 1,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
     blending: THREE.AdditiveBlending,
   });
   const sprite = new THREE.Sprite(material);
@@ -1189,7 +1189,7 @@ for (let i = 0; i < foregroundSparkCount; i += 1) {
   });
   sprite.userData.photoId = photo.id;
   sprite.userData.tier = "gold";
-  sprite.renderOrder = 30;
+  sprite.renderOrder = 8;
   ringGroup.add(sprite);
 }
 
@@ -2139,7 +2139,7 @@ function updateRingParticles(elapsed) {
 
   foregroundSparks.forEach((item) => {
     const angle = item.angle + elapsed * item.speed * speed;
-    const frontVisibility = THREE.MathUtils.smoothstep(Math.sin(angle), -0.08, 0.32);
+    const frontVisibility = THREE.MathUtils.smoothstep(Math.sin(angle), 0.08, 0.36);
     item.sprite.position.set(
       Math.cos(angle) * item.radius,
       Math.sin(angle) * item.radius,
@@ -2148,7 +2148,7 @@ function updateRingParticles(elapsed) {
     const pulse = 1 + Math.sin(elapsed * 2.6 + item.phase) * 0.18;
     item.sprite.scale.setScalar(item.baseScale * pulse);
     item.sprite.material.opacity = (0.88 + Math.sin(elapsed * 2 + item.phase) * 0.1) * frontVisibility;
-    item.sprite.visible = frontVisibility > 0.02;
+    item.sprite.visible = frontVisibility > 0.08;
   });
 }
 
