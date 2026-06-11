@@ -118,6 +118,7 @@ function getTieredPhotos() {
 const photoTiers = getTieredPhotos();
 const photosById = new Map(photos.map((photo) => [photo.id, photo]));
 let nextPhotoId = Math.max(...photos.map((photo) => photo.id), 100) + 1;
+let lastPhotoSourceRoute = "album";
 const activityLogs = Array.isArray(storedState.activityLogs) ? storedState.activityLogs : [];
 const RECORDS_ACCESS_CODE = "5708481";
 const pendingPhotoReplacements = new Map();
@@ -1406,9 +1407,12 @@ function assignPhotoEntriesByRank() {
   photoDustGeometry.attributes.position.needsUpdate = true;
 }
 
-function navigatePhoto(photoId, increment = false) {
+function navigatePhoto(photoId, increment = false, sourceRoute = "") {
   const photo = photosById.get(photoId);
   if (!photo) return;
+  if (sourceRoute === "album" || sourceRoute === "gallery") {
+    lastPhotoSourceRoute = sourceRoute;
+  }
   if (increment) {
     requestJson(`/api/photos/${photoId}/view`, { method: "POST" })
       .then(({ state }) => mergeServerState(state))
@@ -1639,10 +1643,12 @@ function renderRecords() {
 
 function renderPhotoPage(photo) {
   const tier = photoTierLabel(photo);
+  const returnRoute = lastPhotoSourceRoute === "gallery" ? "gallery" : "album";
+  const returnLabel = returnRoute === "gallery" ? "返回图库" : "返回相册";
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="photo-page">
-      <button class="panel-close" data-route="album" aria-label="返回相册">×</button>
+      <button class="panel-close" data-route="${returnRoute}" aria-label="${returnLabel}">×</button>
       <div class="panel-kicker">${tier}</div>
       <h2>照片 #${photo.id}</h2>
       <img class="photo-preview" src="${photo.src}" alt="毕业照片 ${photo.id}" />
@@ -1663,7 +1669,7 @@ function renderPhotoPage(photo) {
         <button data-replace-confirm data-photo-id="${photo.id}" type="button">确认替换</button>
         <output class="replace-status" data-replace-status></output>
       </div>
-      <button class="panel-action" data-route="album">返回相册</button>
+      <button class="panel-action" data-route="${returnRoute}">${returnLabel}</button>
     </article>
   `;
 }
@@ -1864,7 +1870,8 @@ routePanel.addEventListener("click", (event) => {
   }
   const photoButton = event.target.closest(".album-card[data-photo-id]");
   if (photoButton) {
-    navigatePhoto(Number(photoButton.dataset.photoId), true);
+    const sourceRoute = window.location.hash.replace(/^#/, "") === "gallery" ? "gallery" : "album";
+    navigatePhoto(Number(photoButton.dataset.photoId), true, sourceRoute);
   }
 });
 
