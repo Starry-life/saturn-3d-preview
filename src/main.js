@@ -31,6 +31,9 @@ const musicStar = document.querySelector("#music-star");
 const musicAudio = document.querySelector("#bg-music");
 let musicName = "星河默认氛围";
 let storedMusicSrc = "";
+let musicTracks = [];
+let currentMusicId = "";
+let playbackMode = "order";
 let currentMusicObjectUrl = "";
 const STORAGE_KEY = "graduation-star-atlas-state-v1";
 const assetUrl = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
@@ -126,8 +129,21 @@ const routeScrollPositions = {
 const activityLogs = Array.isArray(storedState.activityLogs) ? storedState.activityLogs : [];
 const RECORDS_ACCESS_CODE = "5708481";
 const pendingPhotoReplacements = new Map();
-if (storedState.musicName) musicName = storedState.musicName;
-if (storedState.musicSrc) storedMusicSrc = storedState.musicSrc;
+if (Array.isArray(storedState.musicTracks)) musicTracks = storedState.musicTracks;
+if (storedState.musicSrc && !musicTracks.length) {
+  musicTracks = [{ id: "local-legacy-music", name: storedState.musicName || "背景音乐", src: storedState.musicSrc }];
+}
+if (storedState.currentMusicId) currentMusicId = storedState.currentMusicId;
+if (["order", "random", "repeat"].includes(storedState.playbackMode)) playbackMode = storedState.playbackMode;
+if (!currentMusicId && musicTracks[0]) currentMusicId = musicTracks[0].id;
+const initialMusicTrack = musicTracks.find((track) => track.id === currentMusicId);
+if (initialMusicTrack) {
+  musicName = initialMusicTrack.name;
+  storedMusicSrc = initialMusicTrack.src;
+} else {
+  if (storedState.musicName) musicName = storedState.musicName;
+  if (storedState.musicSrc) storedMusicSrc = storedState.musicSrc;
+}
 
 function saveState() {
   try {
@@ -143,6 +159,9 @@ function saveState() {
           replacedBy: photo.replacedBy || "",
         })),
         activityLogs,
+        musicTracks,
+        currentMusicId,
+        playbackMode,
         musicName,
         musicSrc: storedMusicSrc,
       }),
@@ -205,9 +224,15 @@ function mergeServerState(state) {
     }
   });
   nextPhotoId = Number(state.nextPhotoId) || Math.max(...photos.map((photo) => photo.id), 100) + 1;
-  if (state.musicName) musicName = state.musicName;
-  if (state.musicSrc && state.musicSrc !== storedMusicSrc) {
-    storedMusicSrc = state.musicSrc;
+  if (Array.isArray(state.musicTracks)) musicTracks = state.musicTracks;
+  if (state.currentMusicId !== undefined) currentMusicId = state.currentMusicId;
+  if (["order", "random", "repeat"].includes(state.playbackMode)) playbackMode = state.playbackMode;
+  if (!currentMusicId && musicTracks[0]) currentMusicId = musicTracks[0].id;
+  const serverTrack = musicTracks.find((track) => track.id === currentMusicId);
+  const nextMusicSrc = serverTrack?.src || state.musicSrc || "";
+  musicName = serverTrack?.name || state.musicName || musicName;
+  if (nextMusicSrc && nextMusicSrc !== storedMusicSrc) {
+    storedMusicSrc = nextMusicSrc;
     musicAudio.src = storedMusicSrc;
   }
   if (Array.isArray(state.activityLogs)) {
@@ -1518,6 +1543,68 @@ let ambientOscillators = [];
 let synthMusicPlaying = false;
 let musicWanted = false;
 
+function getCurrentMusicTrack() {
+  return musicTracks.find((track) => track.id === currentMusicId) || null;
+}
+
+function applyCurrentMusicTrack({ keepPlaying = false } = {}) {
+  const track = getCurrentMusicTrack();
+  musicName = track?.name || "星河默认氛围";
+  const nextSrc = track?.src || createDefaultMusicDataUrl();
+  if (musicAudio.src !== nextSrc) {
+    storedMusicSrc = track?.src || "";
+    musicAudio.src = nextSrc;
+    musicAudio.load();
+  }
+  if (keepPlaying) {
+    musicWanted = true;
+    ensureMusicPlayback().catch(() => {});
+  }
+}
+
+function getNextTrackId(direction = 1) {
+  if (!musicTracks.length) return "";
+  const currentIndex = Math.max(0, musicTracks.findIndex((track) => track.id === currentMusicId));
+  if (playbackMode === "random" && musicTracks.length > 1) {
+    let nextIndex = currentIndex;
+    while (nextIndex === currentIndex) nextIndex = Math.floor(Math.random() * musicTracks.length);
+    return musicTracks[nextIndex].id;
+  }
+  const nextIndex = (currentIndex + direction + musicTracks.length) % musicTracks.length;
+  return musicTracks[nextIndex].id;
+}
+
+async function setCurrentMusic(trackId, { keepPlaying = musicWanted, persist = true } = {}) {
+  if (!musicTracks.some((track) => track.id === trackId)) return;
+  currentMusicId = trackId;
+  applyCurrentMusicTrack({ keepPlaying });
+  saveState();
+  if (persist && isSharedBackendConfigured) {
+    await requestJson("/api/music", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentMusicId, playbackMode }),
+    });
+  }
+}
+
+async function changeMusicByOffset(direction) {
+  const nextId = getNextTrackId(direction);
+  if (nextId) await setCurrentMusic(nextId);
+  if (window.location.hash.replace(/^#/, "") === "music") renderMusicPage();
+}
+
+async function persistPlaybackMode() {
+  saveState();
+  if (isSharedBackendConfigured) {
+    await requestJson("/api/music", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentMusicId, playbackMode }),
+    });
+  }
+}
+
 function startAmbientSynth() {
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return false;
@@ -1593,6 +1680,11 @@ async function ensureMusicPlayback() {
 
 function renderMusicPage() {
   const musicPlaying = !musicAudio.paused || synthMusicPlaying;
+  const modeLabels = {
+    order: "顺序播放",
+    random: "随机播放",
+    repeat: "单曲循环",
+  };
   routePanel.hidden = false;
   routePanel.innerHTML = `
     <article class="music-page">
@@ -1601,19 +1693,53 @@ function renderMusicPage() {
       <h2>背景音乐</h2>
       <div class="music-controls">
         <button data-music-action="toggle">${musicPlaying ? "暂停音乐" : "播放音乐"}</button>
+        <button data-music-action="prev">上一首</button>
+        <button data-music-action="next">下一首</button>
+        <button data-music-mode="order" class="${playbackMode === "order" ? "active" : ""}">顺序</button>
+        <button data-music-mode="random" class="${playbackMode === "random" ? "active" : ""}">随机</button>
+        <button data-music-mode="repeat" class="${playbackMode === "repeat" ? "active" : ""}">单曲循环</button>
         <button data-route="home">返回星图</button>
+      </div>
+      <div class="music-now">
+        <strong>正在播放</strong>
+        <span>${musicName} · ${modeLabels[playbackMode]}</span>
       </div>
       <div class="music-upload">
         <div>
           <strong>上传音乐</strong>
-          <span>当前音乐：${musicName}</span>
+          <span>可以一次选择多首音乐</span>
         </div>
         <input class="account-field" data-music-account type="text" inputmode="numeric" placeholder="输入上传账号" aria-label="输入上传账号" />
         <label class="upload-button">
           选择音乐
-          <input data-music-upload type="file" accept="audio/*" />
+          <input data-music-upload type="file" accept="audio/*" multiple />
         </label>
         <output class="music-status" data-music-status></output>
+      </div>
+      <div class="music-library">
+        <div class="music-library-head">
+          <strong>音乐库</strong>
+          <input class="account-field" data-music-delete-account type="text" inputmode="numeric" placeholder="删除需输入账号" aria-label="删除音乐账号" />
+        </div>
+        <div class="music-track-list">
+          ${
+            musicTracks.length
+              ? musicTracks
+                  .map(
+                    (track, index) => `
+                      <div class="music-track ${track.id === currentMusicId ? "active" : ""}">
+                        <button class="music-track-main" data-music-select="${track.id}">
+                          <span>${index + 1}. ${track.name}</span>
+                          <small>${track.id === currentMusicId ? "当前播放" : "点击切换"}</small>
+                        </button>
+                        <button class="music-delete" data-music-delete="${track.id}">删除</button>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="music-empty">还没有上传音乐，当前使用默认氛围音。</div>`
+          }
+        </div>
       </div>
     </article>
   `;
@@ -1854,6 +1980,60 @@ routePanel.addEventListener("click", (event) => {
     });
     return;
   }
+  if (musicButton?.dataset.musicAction === "prev") {
+    changeMusicByOffset(-1).catch(() => {});
+    return;
+  }
+  if (musicButton?.dataset.musicAction === "next") {
+    changeMusicByOffset(1).catch(() => {});
+    return;
+  }
+  const modeButton = event.target.closest("[data-music-mode]");
+  if (modeButton) {
+    playbackMode = modeButton.dataset.musicMode;
+    persistPlaybackMode().catch(() => {}).finally(() => renderMusicPage());
+    return;
+  }
+  const selectMusicButton = event.target.closest("[data-music-select]");
+  if (selectMusicButton) {
+    setCurrentMusic(selectMusicButton.dataset.musicSelect).catch(() => {}).finally(() => renderMusicPage());
+    return;
+  }
+  const deleteMusicButton = event.target.closest("[data-music-delete]");
+  if (deleteMusicButton) {
+    const accountInput = routePanel.querySelector("[data-music-delete-account]");
+    const status = routePanel.querySelector("[data-music-status]");
+    const account = accountInput?.value ?? "";
+    if (!isAuthorizedAccount(account)) {
+      if (status) status.textContent = "账号无权限删除音乐";
+      accountInput?.focus();
+      return;
+    }
+    const trackId = deleteMusicButton.dataset.musicDelete;
+    requestJson(`/api/music/${encodeURIComponent(trackId)}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account }),
+    })
+      .then(({ state }) => {
+        mergeServerState(state);
+        if (status) status.textContent = "音乐已删除";
+      })
+      .catch(() => {
+        if (isSharedBackendConfigured) {
+          if (status) status.textContent = "云端删除失败，请稍后重试";
+          return;
+        }
+        const track = musicTracks.find((item) => item.id === trackId);
+        musicTracks = musicTracks.filter((item) => item.id !== trackId);
+        if (currentMusicId === trackId) currentMusicId = musicTracks[0]?.id || "";
+        applyCurrentMusicTrack({ keepPlaying: musicWanted });
+        logActivity("music", account, "", `Delete music: ${track?.name || trackId}`);
+        saveState();
+        renderMusicPage();
+      });
+    return;
+  }
   const replaceButton = event.target.closest("[data-replace-confirm]");
   if (replaceButton) {
     const photoId = Number(replaceButton.dataset.photoId);
@@ -2016,8 +2196,8 @@ routePanel.addEventListener("change", async (event) => {
 
 routePanel.addEventListener("change", (event) => {
   const input = event.target.closest("[data-music-upload]");
-  const file = input?.files?.[0];
-  if (!file) return;
+  const files = [...(input?.files || [])].filter((file) => file.type.startsWith("audio/"));
+  if (!files.length) return;
   const status = routePanel.querySelector("[data-music-status]");
   const accountInput = routePanel.querySelector("[data-music-account]");
   const account = accountInput?.value ?? "";
@@ -2031,33 +2211,43 @@ routePanel.addEventListener("change", (event) => {
   stopAmbientSynth();
   const formData = new FormData();
   formData.append("account", account);
-  formData.append("music", file);
+  files.forEach((file) => formData.append("music", file));
   requestJson("/api/music", {
     method: "POST",
     body: formData,
   })
     .then(({ state }) => {
       mergeServerState(state);
-      if (status) status.textContent = `已上传：${file.name}`;
+      const nextStatus = routePanel.querySelector("[data-music-status]");
+      if (nextStatus) nextStatus.textContent = `已上传 ${files.length} 首音乐`;
       toggleMusicPlayback().finally(() => {
         if (window.location.hash.replace(/^#/, "") === "music") renderMusicPage();
       });
     })
-    .catch(() => {
-      readImageFile(file).then((src) => {
-        if (currentMusicObjectUrl) URL.revokeObjectURL(currentMusicObjectUrl);
-        currentMusicObjectUrl = "";
-        storedMusicSrc = src;
-        musicName = file.name;
-        musicAudio.src = storedMusicSrc;
-        musicAudio.load();
-        logActivity("music", account, "", file.name);
-        saveState();
-        if (status) status.textContent = `已上传：${file.name}（本地保存）`;
-        toggleMusicPlayback().finally(() => {
-          if (window.location.hash.replace(/^#/, "") === "music") renderMusicPage();
-        });
-      });
+    .catch(async () => {
+      if (isSharedBackendConfigured) {
+        const nextStatus = routePanel.querySelector("[data-music-status]");
+        if (nextStatus) nextStatus.textContent = "云端上传音乐失败，请稍后重试";
+        return;
+      }
+      for (const file of files) {
+        const src = await readImageFile(file);
+        const track = {
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          name: file.name,
+          src,
+          uploaderAccount: account,
+          createdAt: new Date().toISOString(),
+        };
+        musicTracks.push(track);
+        if (!currentMusicId) currentMusicId = track.id;
+        logActivity("music", account, "", `Upload music: ${file.name}`);
+      }
+      applyCurrentMusicTrack({ keepPlaying: musicWanted });
+      saveState();
+      renderMusicPage();
+      const nextStatus = routePanel.querySelector("[data-music-status]");
+      if (nextStatus) nextStatus.textContent = `已上传 ${files.length} 首音乐（本地保存）`;
     });
 });
 
@@ -2076,6 +2266,16 @@ musicAudio.addEventListener("pause", () => {
     return;
   }
   musicStar.classList.remove("playing");
+});
+
+musicAudio.addEventListener("ended", () => {
+  if (!musicWanted) return;
+  if (playbackMode === "repeat") {
+    musicAudio.currentTime = 0;
+    ensureMusicPlayback().catch(() => {});
+    return;
+  }
+  changeMusicByOffset(1).catch(() => {});
 });
 window.addEventListener("hashchange", renderRoute);
 renderRoute();

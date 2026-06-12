@@ -365,6 +365,31 @@ input:focus {
   margin: 8px 0 18px;
 }
 
+.music-controls button.active {
+  color: #071014;
+  background: linear-gradient(90deg, #a4edf0, #d9bd70);
+}
+
+.music-now,
+.music-library {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(214, 232, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.music-now strong,
+.music-library-head strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.music-now span {
+  color: rgba(232, 239, 255, 0.68);
+  font-size: 13px;
+}
+
 .music-upload {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(170px, 220px) auto;
@@ -386,6 +411,60 @@ input:focus {
 .music-upload span,
 .music-status {
   margin-top: 4px;
+  color: rgba(232, 239, 255, 0.68);
+  font-size: 13px;
+}
+
+.music-library-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px);
+  align-items: center;
+  gap: 12px;
+}
+
+.music-track-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.music-track {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.music-track-main {
+  height: auto;
+  min-height: 50px;
+  justify-content: start;
+  text-align: left;
+}
+
+.music-track-main span,
+.music-track-main small {
+  display: block;
+}
+
+.music-track-main small {
+  margin-top: 3px;
+  color: rgba(232, 239, 255, 0.56);
+  font-size: 12px;
+}
+
+.music-track.active .music-track-main {
+  color: #071014;
+  background: linear-gradient(90deg, rgba(164, 237, 240, 0.96), rgba(217, 189, 112, 0.94));
+}
+
+.music-delete {
+  min-width: 72px;
+  border-color: rgba(255, 113, 113, 0.42);
+  color: #ffd4d4;
+}
+
+.music-empty {
   color: rgba(232, 239, 255, 0.68);
   font-size: 13px;
 }

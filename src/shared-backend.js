@@ -145,10 +145,23 @@ export async function getSharedState() {
   const photos = (photoRows || []).map(normalizePhoto);
   const maxId = photos.reduce((max, photo) => Math.max(max, photo.id), 100);
   const music = settings.music || {};
+  const legacyTrack = music.musicSrc
+    ? [{ id: "legacy-music", name: music.musicName || "背景音乐", src: music.musicSrc, uploaderAccount: "", createdAt: "" }]
+    : [];
+  const musicTracks = Array.isArray(music.musicTracks) ? music.musicTracks : legacyTrack;
+  const currentMusicId = musicTracks.some((track) => track.id === music.currentMusicId)
+    ? music.currentMusicId
+    : musicTracks[0]?.id || "";
+  const currentTrack = musicTracks.find((track) => track.id === currentMusicId);
   return {
     photos,
     musicName: music.musicName || "星河默认氛围",
     musicSrc: music.musicSrc || "",
+    musicTracks,
+    currentMusicId,
+    playbackMode: music.playbackMode || "order",
+    musicName: currentTrack?.name || music.musicName || "星河默认氛围",
+    musicSrc: currentTrack?.src || music.musicSrc || "",
     nextPhotoId: Math.max(maxId + 1, 101),
   };
 }
@@ -239,20 +252,75 @@ export async function incrementSharedPhotoView(photoId) {
   return { state: await getSharedState() };
 }
 
-export async function uploadMusic(account, file) {
-  assertConfigured();
-  if (!isAuthorizedAccount(account)) throw new Error("账号无权限上传音乐");
-  const musicSrc = await uploadPublicFile(MUSIC_BUCKET, "music", file);
-  const value = { musicName: file.name, musicSrc };
+async function readMusicSetting() {
+  const settings = await getSettings();
+  const music = settings.music || {};
+  const legacyTrack = music.musicSrc
+    ? [{ id: "legacy-music", name: music.musicName || "Background music", src: music.musicSrc, uploaderAccount: "", createdAt: "" }]
+    : [];
+  return {
+    musicTracks: Array.isArray(music.musicTracks) ? music.musicTracks : legacyTrack,
+    currentMusicId: music.currentMusicId || "",
+    playbackMode: music.playbackMode || "order",
+  };
+}
+
+async function saveMusicSetting(value) {
   const { error } = await supabase.from("app_settings").upsert(
     { key: "music", value, updated_at: new Date().toISOString() },
     { onConflict: "key" },
   );
   if (error) throw error;
-  await insertLog("music", account, null, file.name);
+}
+
+export async function uploadMusic(account, files) {
+  assertConfigured();
+  if (!isAuthorizedAccount(account)) throw new Error("Unauthorized music upload");
+  const setting = await readMusicSetting();
+  const incomingFiles = Array.isArray(files) ? files : [files];
+  const uploaded = [];
+  for (const file of incomingFiles.filter(Boolean)) {
+    const musicSrc = await uploadPublicFile(MUSIC_BUCKET, "music", file);
+    const track = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 9),
+      name: file.name,
+      src: musicSrc,
+      uploaderAccount: String(account).trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setting.musicTracks.push(track);
+    uploaded.push(track);
+    await insertLog("music", account, null, "Upload music: " + file.name);
+  }
+  if (!setting.currentMusicId && setting.musicTracks[0]) setting.currentMusicId = setting.musicTracks[0].id;
+  await saveMusicSetting(setting);
+  return { uploaded, state: await getSharedState() };
+}
+
+export async function updateMusicSetting(account, patch) {
+  assertConfigured();
+  if (account && !isAuthorizedAccount(account)) throw new Error("Unauthorized music action");
+  const setting = await readMusicSetting();
+  if (["order", "random", "repeat"].includes(patch.playbackMode)) setting.playbackMode = patch.playbackMode;
+  if (patch.currentMusicId && setting.musicTracks.some((track) => track.id === patch.currentMusicId)) {
+    setting.currentMusicId = patch.currentMusicId;
+  }
+  await saveMusicSetting(setting);
   return { state: await getSharedState() };
 }
 
+export async function deleteMusic(account, trackId) {
+  assertConfigured();
+  if (!isAuthorizedAccount(account)) throw new Error("Unauthorized music delete");
+  const setting = await readMusicSetting();
+  const track = setting.musicTracks.find((item) => item.id === trackId);
+  if (!track) throw new Error("Music track not found");
+  setting.musicTracks = setting.musicTracks.filter((item) => item.id !== trackId);
+  if (setting.currentMusicId === trackId) setting.currentMusicId = setting.musicTracks[0]?.id || "";
+  await saveMusicSetting(setting);
+  await insertLog("music", account, null, "Delete music: " + track.name);
+  return { state: await getSharedState() };
+}
 export async function handleSharedRequest(url, options = {}) {
   if (!isSharedBackendConfigured) return null;
   const method = String(options.method || "GET").toUpperCase();
@@ -278,7 +346,17 @@ export async function handleSharedRequest(url, options = {}) {
 
   if (method === "POST" && path === "/api/music") {
     const body = options.body;
-    return uploadMusic(body.get("account"), body.get("music"));
+    return uploadMusic(body.get("account"), body.getAll("music"));
+  }
+
+  if (method === "PATCH" && path === "/api/music") {
+    return updateMusicSetting("", JSON.parse(options.body || "{}"));
+  }
+
+  const musicDeleteMatch = path.match(/^\/api\/music\/([^/]+)$/);
+  if (method === "DELETE" && musicDeleteMatch) {
+    const body = JSON.parse(options.body || "{}");
+    return deleteMusic(body.account, decodeURIComponent(musicDeleteMatch[1]));
   }
 
   return null;
